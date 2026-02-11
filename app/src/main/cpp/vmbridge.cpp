@@ -9,6 +9,8 @@
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
+#include <pthread.h>
+#include <stdio.h>
 
 #define LOG_TAG "vmbridge"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -17,6 +19,32 @@
 static pid_t g_vm_pid = -1;
 
 static std::string g_log_path;
+
+struct WaitArgs {
+    pid_t pid;
+    std::string logPath;
+};
+
+static void* wait_thread(void* arg) {
+    WaitArgs* wa = static_cast<WaitArgs*>(arg);
+    int status = 0;
+    waitpid(wa->pid, &status, 0);
+    if (!wa->logPath.empty()) {
+        int fd = open(wa->logPath.c_str(), O_CREAT | O_WRONLY | O_APPEND, 0644);
+        if (fd >= 0) {
+            if (WIFEXITED(status)) {
+                dprintf(fd, "QEMU exited with code %d\n", WEXITSTATUS(status));
+            } else if (WIFSIGNALED(status)) {
+                dprintf(fd, "QEMU killed by signal %d\n", WTERMSIG(status));
+            } else {
+                dprintf(fd, "QEMU exited (status=%d)\n", status);
+            }
+            close(fd);
+        }
+    }
+    delete wa;
+    return nullptr;
+}
 
 extern "C" JNIEXPORT jint JNICALL
 Java_com_cryptd_vm_NativeBridge_startVm(
@@ -137,15 +165,32 @@ Java_com_cryptd_vm_NativeBridge_startVm(
             if (fd >= 0) {
                 dup2(fd, 1);
                 dup2(fd, 2);
+                dprintf(fd, "QEMU args:\n");
+                for (size_t i = 0; i < argv.size() && argv[i]; i++) {
+                    dprintf(fd, "  %s\n", argv[i]);
+                }
                 close(fd);
             }
         }
         execv(qemu, argv.data());
-        LOGE("execv failed: %s", strerror(errno));
+        if (logPathStr && strlen(logPathStr) > 0) {
+            int fd = open(logPathStr, O_CREAT | O_WRONLY | O_APPEND, 0644);
+            if (fd >= 0) {
+                dprintf(fd, "execv failed: %s\n", strerror(errno));
+                close(fd);
+            }
+        }
         _exit(127);
     } else if (pid > 0) {
         g_vm_pid = pid;
         LOGI("VM started pid=%d", g_vm_pid);
+        if (logPathStr && strlen(logPathStr) > 0) {
+            pthread_t tid;
+            WaitArgs* wa = new WaitArgs{pid, std::string(logPathStr)};
+            if (pthread_create(&tid, nullptr, wait_thread, wa) == 0) {
+                pthread_detach(tid);
+            }
+        }
     } else {
         LOGE("fork failed");
     }
