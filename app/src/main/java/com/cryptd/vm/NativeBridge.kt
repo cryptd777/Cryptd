@@ -22,7 +22,4 @@ object NativeBridge {
     ): Int
 
     external fun stopVm()
-
-    external fun sendMouseEvent(dx: Int, dy: Int, buttons: Int)
-    external fun sendKeyEvent(keyCode: Int, isDown: Boolean)
 }

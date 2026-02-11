@@ -13,7 +13,6 @@ class VncActivity : ComponentActivity() {
     private var hasFrame = false
     private var autoGfx = false
     private var gfxIndex = 0
-    private var lastStartTime = 0L
     private val gfxOrder = listOf("virtio", "virtio-device", "ramfb")
     private val handler = Handler(Looper.getMainLooper())
     private var retrying = false
@@ -25,6 +24,7 @@ class VncActivity : ComponentActivity() {
     private var cpuCores = 2
     private var useKvm = false
     private var logPath: String = ""
+    private var frameTimeoutMs: Long = 20000
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,6 +42,8 @@ class VncActivity : ComponentActivity() {
         autoGfx = intent.getBooleanExtra(EXTRA_AUTO_GFX, false)
         val initialGfx = intent.getStringExtra(EXTRA_GFX) ?: "virtio"
         gfxIndex = gfxOrder.indexOf(initialGfx).let { if (it >= 0) it else 0 }
+        val timeoutSec = intent.getIntExtra(EXTRA_FRAME_TIMEOUT_SEC, 20)
+        frameTimeoutMs = (timeoutSec.coerceIn(5, 120) * 1000L)
 
         vncView = VncView(this)
         vncView?.onFirstFrame = {
@@ -63,6 +65,12 @@ class VncActivity : ComponentActivity() {
                 startActivity(android.content.Intent(this@VncActivity, LogActivity::class.java))
             }
         }
+        val retryButton = Button(this).apply {
+            text = "Retry GPU"
+            setOnClickListener {
+                tryNextGfx()
+            }
+        }
         val lp = FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.WRAP_CONTENT,
             FrameLayout.LayoutParams.WRAP_CONTENT
@@ -71,10 +79,18 @@ class VncActivity : ComponentActivity() {
         lp.topMargin = 16
         lp.marginEnd = 16
         root.addView(logsButton, lp)
+        val lpRetry = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT
+        )
+        lpRetry.gravity = Gravity.TOP or Gravity.END
+        lpRetry.topMargin = 16
+        lpRetry.marginEnd = 16
+        lpRetry.topMargin += 100
+        root.addView(retryButton, lpRetry)
 
         setContentView(root)
         vncView?.connect(host, port)
-        lastStartTime = System.currentTimeMillis()
         if (autoGfx) {
             scheduleFrameTimeout()
         }
@@ -93,7 +109,7 @@ class VncActivity : ComponentActivity() {
             if (!hasFrame && autoGfx && !retrying) {
                 tryNextGfx()
             }
-        }, 12000)
+        }, frameTimeoutMs)
     }
 
     private fun handleDisconnect() {
@@ -127,6 +143,11 @@ class VncActivity : ComponentActivity() {
         val bundle = QemuInstaller.ensureQemuBundle(this)
         if (bundle == null) {
             VmLogStore.append(this, "Missing QEMU bundle in assets\n")
+            finish()
+            return
+        }
+        if (!QemuInstaller.verifyRequiredLibs(this)) {
+            VmLogStore.append(this, "QEMU deps missing. Reinstall app.\n")
             finish()
             return
         }
@@ -194,7 +215,6 @@ class VncActivity : ComponentActivity() {
         }
         vncView?.connect(intent.getStringExtra(EXTRA_HOST) ?: "127.0.0.1", intent.getIntExtra(EXTRA_PORT, 5901))
         retrying = false
-        lastStartTime = System.currentTimeMillis()
         scheduleFrameTimeout()
     }
 
@@ -211,5 +231,6 @@ class VncActivity : ComponentActivity() {
         const val EXTRA_LOG_PATH = "log_path"
         const val EXTRA_GFX = "gfx"
         const val EXTRA_AUTO_GFX = "auto_gfx"
+        const val EXTRA_FRAME_TIMEOUT_SEC = "frame_timeout_sec"
     }
 }

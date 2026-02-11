@@ -7,6 +7,20 @@ import java.io.FileOutputStream
 object QemuInstaller {
     data class QemuBundle(val qemuPath: String, val libDir: String, val shareDir: String)
     private const val BUNDLE_VERSION = 5
+    private val REQUIRED_LIBS = listOf(
+        "libandroid-support.so",
+        "libglib-2.0.so.0",
+        "libgio-2.0.so.0",
+        "libgobject-2.0.so.0",
+        "libgthread-2.0.so.0",
+        "libgmodule-2.0.so.0",
+        "libgirepository-2.0.so.0",
+        "libspice-server.so",
+        "libspice-server.so.1",
+        "libpcre2-8.so",
+        "libssl.so.3",
+        "libcrypto.so.3"
+    )
 
     fun ensureQemuBundle(context: Context): QemuBundle? {
         val baseDir = File(context.filesDir, "qemu")
@@ -31,6 +45,17 @@ object QemuInstaller {
 
         versionFile.writeText(BUNDLE_VERSION.toString())
         return QemuBundle(qemuPath.absolutePath, libDir.absolutePath, shareDir.absolutePath)
+    }
+
+    fun verifyRequiredLibs(context: Context): Boolean {
+        val baseDir = File(context.filesDir, "qemu")
+        val libDir = File(baseDir, "lib")
+        for (name in REQUIRED_LIBS) {
+            if (!File(libDir, name).exists()) {
+                return false
+            }
+        }
+        return true
     }
 
     private fun copyAssetDir(context: Context, assetPath: String, outDir: File) {

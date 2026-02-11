@@ -257,13 +257,3 @@ Java_com_cryptd_vm_NativeBridge_stopVm(JNIEnv*, jclass) {
         g_vm_pid = -1;
     }
 }
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_cryptd_vm_NativeBridge_sendMouseEvent(JNIEnv*, jclass, jint dx, jint dy, jint buttons) {
-    LOGI("mouse dx=%d dy=%d buttons=%d", dx, dy, buttons);
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_cryptd_vm_NativeBridge_sendKeyEvent(JNIEnv*, jclass, jint keyCode, jboolean isDown) {
-    LOGI("key code=%d down=%d", keyCode, isDown);
-}

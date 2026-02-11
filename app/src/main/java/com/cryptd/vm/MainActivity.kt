@@ -21,6 +21,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var cpuInput: EditText
     private lateinit var gfxSpinner: Spinner
     private lateinit var mediaSpinner: Spinner
+    private lateinit var frameTimeoutInput: EditText
     private lateinit var vncPortInput: EditText
     private lateinit var kvmCheck: CheckBox
     private lateinit var stopButton: Button
@@ -60,6 +61,7 @@ class MainActivity : ComponentActivity() {
         cpuInput = findViewById(R.id.cpuInput)
         gfxSpinner = findViewById(R.id.gfxSpinner)
         mediaSpinner = findViewById(R.id.mediaSpinner)
+        frameTimeoutInput = findViewById(R.id.frameTimeoutInput)
         vncPortInput = findViewById(R.id.vncPortInput)
         kvmCheck = findViewById(R.id.kvmCheck)
         stopButton = findViewById(R.id.stopButton)
@@ -73,6 +75,7 @@ class MainActivity : ComponentActivity() {
         mediaSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, mediaOptions)
         ramInput.setText("1024")
         cpuInput.setText("2")
+        frameTimeoutInput.setText("20")
         vncPortInput.setText("5901")
         diskSizeInput.setText("8")
         lastDiskPath = VmFiles.loadLastDiskPath(this)
@@ -135,6 +138,7 @@ class MainActivity : ComponentActivity() {
                 gfx = "virtio"
             }
             val vncPort = vncPortInput.text.toString().toIntOrNull() ?: 5901
+            val frameTimeoutSec = frameTimeoutInput.text.toString().toIntOrNull() ?: 20
             val useKvm = kvmCheck.isChecked
 
             if (vncPort < 5900 || vncPort > 5999) {
@@ -182,6 +186,13 @@ class MainActivity : ComponentActivity() {
                     }
                     return@Thread
                 }
+                if (!QemuInstaller.verifyRequiredLibs(this)) {
+                    runOnUiThread {
+                        Toast.makeText(this, "QEMU deps missing. Reinstall app.", Toast.LENGTH_LONG).show()
+                        setUiEnabled(true)
+                    }
+                    return@Thread
+                }
 
                 val logPath = VmLogStore.startSession(this).absolutePath
                 var diskPath = lastDiskPath ?: ""
@@ -201,9 +212,11 @@ class MainActivity : ComponentActivity() {
                     if (isDiskImage) {
                         diskPath = copiedFallbackPath
                         VmFiles.saveLastDiskPath(this, copiedFallbackPath)
+                        VmLogStore.append(this, "Disk copied to app storage: $copiedFallbackPath\n")
                     } else {
                         isoPath = copiedFallbackPath
                         isoFallbackPath = copiedFallbackPath
+                        VmLogStore.append(this, "ISO copied to app storage: $copiedFallbackPath\n")
                     }
                 } else {
                     if (isDiskImage) {
@@ -251,6 +264,7 @@ class MainActivity : ComponentActivity() {
                                 .putExtra(VncActivity.EXTRA_LOG_PATH, logPath)
                                 .putExtra(VncActivity.EXTRA_GFX, gfx)
                                 .putExtra(VncActivity.EXTRA_AUTO_GFX, autoGfx)
+                                .putExtra(VncActivity.EXTRA_FRAME_TIMEOUT_SEC, frameTimeoutSec)
                         )
                     } else {
                         Toast.makeText(this, "Failed to start VM (code $rc). Check logs.", Toast.LENGTH_LONG).show()
@@ -268,6 +282,7 @@ class MainActivity : ComponentActivity() {
         cpuInput.isEnabled = enabled
         gfxSpinner.isEnabled = enabled
         mediaSpinner.isEnabled = enabled
+        frameTimeoutInput.isEnabled = enabled
         vncPortInput.isEnabled = enabled
         kvmCheck.isEnabled = enabled
         stopButton.isEnabled = enabled

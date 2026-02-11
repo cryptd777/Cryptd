@@ -24,6 +24,13 @@
         android:inputType="number" />
 
     <EditText
+        android:id="@+id/frameTimeoutInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="First frame timeout (sec)"
+        android:inputType="number" />
+
+    <EditText
         android:id="@+id/cpuInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
