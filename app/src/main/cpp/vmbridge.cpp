@@ -128,16 +128,6 @@ Java_com_cryptd_vm_NativeBridge_startVm(
     }
     argv.push_back(nullptr);
 
-    // Log file path in app-private storage
-    jclass cls = env->FindClass("com/cryptd/vm/VmLogStore");
-    if (cls) {
-        jmethodID mid = env->GetStaticMethodID(cls, "logFile", "(Landroid/content/Context;)Ljava/io/File;");
-        if (mid) {
-            jobject fileObj = env->CallStaticObjectMethod(cls, mid, env->NewGlobalRef((jobject)nullptr));
-            (void)fileObj;
-        }
-    }
-
     pid_t pid = fork();
     if (pid == 0) {
         setenv("LD_LIBRARY_PATH", libDirStr, 1);
