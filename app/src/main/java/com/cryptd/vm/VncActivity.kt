@@ -1,6 +1,9 @@
 package com.cryptd.vm
 
 import android.os.Bundle
+import android.view.Gravity
+import android.widget.Button
+import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 
 class VncActivity : ComponentActivity() {
@@ -18,7 +21,28 @@ class VncActivity : ComponentActivity() {
             finish()
         }
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        setContentView(vncView)
+        val root = FrameLayout(this)
+        root.addView(vncView, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ))
+
+        val logsButton = Button(this).apply {
+            text = "Logs"
+            setOnClickListener {
+                startActivity(android.content.Intent(this@VncActivity, LogActivity::class.java))
+            }
+        }
+        val lp = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT
+        )
+        lp.gravity = Gravity.TOP or Gravity.END
+        lp.topMargin = 16
+        lp.marginEnd = 16
+        root.addView(logsButton, lp)
+
+        setContentView(root)
         vncView?.connect(host, port)
     }
 
