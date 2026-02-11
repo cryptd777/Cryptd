@@ -115,8 +115,16 @@ Java_com_cryptd_vm_NativeBridge_startVm(
         "-device", "virtio-net-pci,netdev=net0"
     };
 
-    args.push_back("-device");
-    args.push_back("virtio-gpu-pci");
+    if (strcmp(gfxStr, "ramfb") == 0) {
+        args.push_back("-device");
+        args.push_back("ramfb");
+    } else if (strcmp(gfxStr, "virtio-device") == 0) {
+        args.push_back("-device");
+        args.push_back("virtio-gpu-device");
+    } else {
+        args.push_back("-device");
+        args.push_back("virtio-gpu-pci");
+    }
 
     std::string isoStr(iso ? iso : "");
     std::string diskStr(diskPathStr ? diskPathStr : "");

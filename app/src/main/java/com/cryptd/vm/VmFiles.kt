@@ -3,6 +3,8 @@ package com.cryptd.vm
 import android.content.Context
 import android.net.Uri
 import java.io.File
+import android.system.Os
+import android.system.ErrnoException
 
 object VmFiles {
     fun openDocumentFd(context: Context, uri: Uri, mode: String): Int? {
@@ -35,5 +37,13 @@ object VmFiles {
     fun clearLastIsoUri(context: Context) {
         val f = File(context.filesDir, "last-iso-uri.txt")
         if (f.exists()) f.delete()
+    }
+
+    fun closeFd(fd: Int) {
+        if (fd < 0) return
+        try {
+            Os.close(fd)
+        } catch (_: ErrnoException) {
+        }
     }
 }

@@ -20,6 +20,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var ramInput: EditText
     private lateinit var cpuInput: EditText
     private lateinit var gfxSpinner: Spinner
+    private lateinit var mediaSpinner: Spinner
     private lateinit var vncPortInput: EditText
     private lateinit var kvmCheck: CheckBox
     private lateinit var stopButton: Button
@@ -58,6 +59,7 @@ class MainActivity : ComponentActivity() {
         ramInput = findViewById(R.id.ramInput)
         cpuInput = findViewById(R.id.cpuInput)
         gfxSpinner = findViewById(R.id.gfxSpinner)
+        mediaSpinner = findViewById(R.id.mediaSpinner)
         vncPortInput = findViewById(R.id.vncPortInput)
         kvmCheck = findViewById(R.id.kvmCheck)
         stopButton = findViewById(R.id.stopButton)
@@ -65,8 +67,10 @@ class MainActivity : ComponentActivity() {
         diskSizeInput = findViewById(R.id.diskSizeInput)
         viewLogsButton = findViewById(R.id.viewLogsButton)
 
-        val gfxOptions = listOf("virtio", "std", "cirrus")
+        val gfxOptions = listOf("virtio", "virtio-device", "ramfb")
         gfxSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, gfxOptions)
+        val mediaOptions = listOf("Auto", "ISO (read-only)", "Disk image (read/write)")
+        mediaSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, mediaOptions)
         ramInput.setText("1024")
         cpuInput.setText("2")
         vncPortInput.setText("5901")
@@ -74,7 +78,15 @@ class MainActivity : ComponentActivity() {
         lastDiskPath = VmFiles.loadLastDiskPath(this)
         selectedUri = VmFiles.loadLastIsoUri(this)
         if (selectedUri != null) {
-            pickIsoButton.text = DocumentFile.fromSingleUri(this, selectedUri!!)?.name ?: "Selected"
+            val testFd = VmFiles.openDocumentFd(this, selectedUri!!, "r")
+            if (testFd != null) {
+                VmFiles.closeFd(testFd)
+                pickIsoButton.text = DocumentFile.fromSingleUri(this, selectedUri!!)?.name ?: "Selected"
+            } else {
+                VmFiles.clearLastIsoUri(this)
+                selectedUri = null
+                pickIsoButton.text = "Pick ISO/QCOW2"
+            }
         }
 
         pickIsoButton.setOnClickListener {
@@ -127,15 +139,15 @@ class MainActivity : ComponentActivity() {
             }
 
             val name = DocumentFile.fromSingleUri(this, uri)?.name?.lowercase() ?: ""
-            val isDiskImage = name.endsWith(".qcow2") || name.endsWith(".img") || name.endsWith(".raw")
+            val mediaMode = mediaSpinner.selectedItem.toString()
+            val isDiskImage = when (mediaMode) {
+                "ISO (read-only)" -> false
+                "Disk image (read/write)" -> true
+                else -> name.endsWith(".qcow2") || name.endsWith(".img") || name.endsWith(".raw")
+            }
             if (name.contains("x86") || name.contains("amd64") || name.contains("i386")) {
                 Toast.makeText(this, "This app runs arm64 guests. Please pick an arm64/aarch64 ISO.", Toast.LENGTH_LONG).show()
                 return@setOnClickListener
-            }
-
-            if (gfx != "virtio") {
-                Toast.makeText(this, "Only virtio GPU is supported on arm64. Using virtio.", Toast.LENGTH_SHORT).show()
-                gfx = "virtio"
             }
 
             setUiEnabled(false)
@@ -223,6 +235,7 @@ class MainActivity : ComponentActivity() {
         ramInput.isEnabled = enabled
         cpuInput.isEnabled = enabled
         gfxSpinner.isEnabled = enabled
+        mediaSpinner.isEnabled = enabled
         vncPortInput.isEnabled = enabled
         kvmCheck.isEnabled = enabled
         stopButton.isEnabled = enabled

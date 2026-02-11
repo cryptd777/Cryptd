@@ -11,6 +11,11 @@
         android:layout_height="wrap_content"
         android:text="Pick ISO/QCOW2" />
 
+    <Spinner
+        android:id="@+id/mediaSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
     <EditText
         android:id="@+id/ramInput"
         android:layout_width="match_parent"
