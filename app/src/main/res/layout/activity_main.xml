@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <Button
+        android:id="@+id/pickIsoButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Pick ISO/QCOW2" />
+
+    <EditText
+        android:id="@+id/ramInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="RAM (MB)"
+        android:inputType="number" />
+
+    <EditText
+        android:id="@+id/cpuInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="CPU cores"
+        android:inputType="number" />
+
+    <Spinner
+        android:id="@+id/gfxSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <EditText
+            android:id="@+id/vncPortInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="VNC port"
+            android:inputType="number" />
+
+        <CheckBox
+            android:id="@+id/kvmCheck"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="KVM" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/startButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Start VM" />
+
+    <Button
+        android:id="@+id/stopButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Stop VM" />
+
+    <Button
+        android:id="@+id/createDiskButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Create RAW Disk" />
+
+    <EditText
+        android:id="@+id/diskSizeInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Disk size (GB, RAW)"
+        android:inputType="number" />
+
+    <Button
+        android:id="@+id/viewLogsButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="View VM Logs" />
+
+</LinearLayout>
