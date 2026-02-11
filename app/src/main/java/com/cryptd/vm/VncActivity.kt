@@ -17,6 +17,7 @@ class VncActivity : ComponentActivity() {
             android.widget.Toast.makeText(this, "VNC disconnected", android.widget.Toast.LENGTH_SHORT).show()
             finish()
         }
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContentView(vncView)
         vncView?.connect(host, port)
     }

@@ -16,4 +16,11 @@ class LogActivity : ComponentActivity() {
         scroll.addView(text)
         setContentView(scroll)
     }
+
+    override fun onResume() {
+        super.onResume()
+        val scroll = findViewById<ScrollView>(android.R.id.content)
+        val text = (scroll.getChildAt(0) as? TextView) ?: return
+        text.text = VmLogStore.readAll(this)
+    }
 }

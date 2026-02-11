@@ -147,7 +147,7 @@ class MainActivity : ComponentActivity() {
                     return@Thread
                 }
 
-                val logPath = VmLogStore.logFile(this).absolutePath
+                val logPath = VmLogStore.startSession(this).absolutePath
                 var diskPath = lastDiskPath ?: ""
                 if (diskPath.isNotEmpty()) {
                     val f = java.io.File(diskPath)
@@ -156,6 +156,9 @@ class MainActivity : ComponentActivity() {
                         lastDiskPath = null
                     }
                 }
+                VmLogStore.append(this, "ISO: $isoPath\n")
+                VmLogStore.append(this, "Disk: $diskPath\n")
+                VmLogStore.append(this, "RAM: ${ramMb}MB CPU: $cpuCores GFX: $gfx VNC: $vncPort KVM: $useKvm\n")
                 val rc = NativeBridge.startVm(
                     isoPath,
                     bundle.qemuPath,
