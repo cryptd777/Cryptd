@@ -24,13 +24,19 @@ class VncView(context: Context) : View(context) {
     private var altDown = false
     private var metaDown = false
     var onDisconnected: (() -> Unit)? = null
+    var onFirstFrame: (() -> Unit)? = null
     private var inputEnabled = false
+    private var firstFrameEmitted = false
 
     fun connect(host: String, port: Int) {
         client = VncClient(host, port, object : VncClient.Listener {
             override fun onFramebufferResize(width: Int, height: Int) {
                 framebuffer = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
                 inputEnabled = true
+                if (!firstFrameEmitted) {
+                    firstFrameEmitted = true
+                    onFirstFrame?.invoke()
+                }
                 invalidate()
             }
 
@@ -54,6 +60,7 @@ class VncView(context: Context) : View(context) {
         client?.shutdown()
         client = null
         inputEnabled = false
+        firstFrameEmitted = false
     }
 
     override fun onDraw(canvas: Canvas) {

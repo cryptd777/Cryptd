@@ -67,7 +67,7 @@ class MainActivity : ComponentActivity() {
         diskSizeInput = findViewById(R.id.diskSizeInput)
         viewLogsButton = findViewById(R.id.viewLogsButton)
 
-        val gfxOptions = listOf("virtio", "virtio-device", "ramfb")
+        val gfxOptions = listOf("auto", "virtio", "virtio-device", "ramfb")
         gfxSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, gfxOptions)
         val mediaOptions = listOf("Auto", "ISO (read-only)", "Disk image (read/write)")
         mediaSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, mediaOptions)
@@ -130,6 +130,10 @@ class MainActivity : ComponentActivity() {
             val ramMb = ramInput.text.toString().toIntOrNull() ?: 1024
             val cpuCores = cpuInput.text.toString().toIntOrNull() ?: 2
             var gfx = gfxSpinner.selectedItem.toString()
+            val autoGfx = gfx == "auto"
+            if (autoGfx) {
+                gfx = "virtio"
+            }
             val vncPort = vncPortInput.text.toString().toIntOrNull() ?: 5901
             val useKvm = kvmCheck.isChecked
 
@@ -153,13 +157,20 @@ class MainActivity : ComponentActivity() {
             setUiEnabled(false)
             Thread {
                 val fdMode = if (isDiskImage) "rw" else "r"
-                val fd = VmFiles.openDocumentFd(this, uri, fdMode)
+                var fd = VmFiles.openDocumentFd(this, uri, fdMode)
+                var copiedFallbackPath: String? = null
                 if (fd == null) {
                     runOnUiThread {
-                        Toast.makeText(this, "Failed to open selected file. Please reselect.", Toast.LENGTH_SHORT).show()
-                        setUiEnabled(true)
+                        Toast.makeText(this, "Failed to open selected file. Copying into app storage.", Toast.LENGTH_SHORT).show()
                     }
-                    return@Thread
+                    copiedFallbackPath = VmFiles.copyToPrivateStorage(this, uri)
+                    if (copiedFallbackPath == null) {
+                        runOnUiThread {
+                            Toast.makeText(this, "Copy failed. Please reselect.", Toast.LENGTH_SHORT).show()
+                            setUiEnabled(true)
+                        }
+                        return@Thread
+                    }
                 }
                 VmFiles.saveLastIsoUri(this, uri)
 
@@ -185,12 +196,23 @@ class MainActivity : ComponentActivity() {
                 var isoPath = ""
                 var isoFd = -1
                 var diskFd = -1
-                if (isDiskImage) {
-                    diskPath = "/proc/self/fd/$fd"
-                    diskFd = fd
+                var isoFallbackPath = ""
+                if (copiedFallbackPath != null) {
+                    if (isDiskImage) {
+                        diskPath = copiedFallbackPath
+                        VmFiles.saveLastDiskPath(this, copiedFallbackPath)
+                    } else {
+                        isoPath = copiedFallbackPath
+                        isoFallbackPath = copiedFallbackPath
+                    }
                 } else {
-                    isoPath = "/proc/self/fd/$fd"
-                    isoFd = fd
+                    if (isDiskImage) {
+                        diskPath = "/proc/self/fd/$fd"
+                        diskFd = fd
+                    } else {
+                        isoPath = "/proc/self/fd/$fd"
+                        isoFd = fd
+                    }
                 }
 
                 VmLogStore.append(this, "ISO URI: $uri\n")
@@ -219,6 +241,16 @@ class MainActivity : ComponentActivity() {
                             android.content.Intent(this, VncActivity::class.java)
                                 .putExtra(VncActivity.EXTRA_HOST, "127.0.0.1")
                                 .putExtra(VncActivity.EXTRA_PORT, vncPort)
+                                .putExtra(VncActivity.EXTRA_ISO_URI, uri.toString())
+                                .putExtra(VncActivity.EXTRA_IS_DISK, isDiskImage)
+                                .putExtra(VncActivity.EXTRA_DISK_PATH, diskPath)
+                                .putExtra(VncActivity.EXTRA_ISO_PATH, isoFallbackPath)
+                                .putExtra(VncActivity.EXTRA_RAM_MB, ramMb)
+                                .putExtra(VncActivity.EXTRA_CPU, cpuCores)
+                                .putExtra(VncActivity.EXTRA_KVM, useKvm)
+                                .putExtra(VncActivity.EXTRA_LOG_PATH, logPath)
+                                .putExtra(VncActivity.EXTRA_GFX, gfx)
+                                .putExtra(VncActivity.EXTRA_AUTO_GFX, autoGfx)
                         )
                     } else {
                         Toast.makeText(this, "Failed to start VM (code $rc). Check logs.", Toast.LENGTH_LONG).show()

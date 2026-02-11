@@ -46,7 +46,7 @@ class VncClient(
     override fun run() {
         running.set(true)
         try {
-            val deadline = System.currentTimeMillis() + 20000
+            val deadline = System.currentTimeMillis() + 30000
             var didConnect = false
             while (running.get() && System.currentTimeMillis() < deadline) {
                 try {
