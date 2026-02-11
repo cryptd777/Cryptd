@@ -6,10 +6,10 @@ import java.io.FileOutputStream
 
 object QemuInstaller {
     data class QemuBundle(val qemuPath: String, val libDir: String, val shareDir: String)
-    private const val BUNDLE_VERSION = 1
+    private const val BUNDLE_VERSION = 2
 
     fun ensureQemuBundle(context: Context): QemuBundle? {
-        val baseDir = File(context.codeCacheDir, "qemu")
+        val baseDir = File(context.filesDir, "qemu")
         val versionFile = File(baseDir, ".version")
         if (versionFile.exists()) {
             val current = versionFile.readText().trim().toIntOrNull()
@@ -17,21 +17,17 @@ object QemuInstaller {
                 deleteRecursively(baseDir)
             }
         }
-        val binDir = File(baseDir, "bin")
         val libDir = File(baseDir, "lib")
         val shareDir = File(baseDir, "share")
 
-        if (!binDir.exists() && !binDir.mkdirs()) return null
         if (!libDir.exists() && !libDir.mkdirs()) return null
         if (!shareDir.exists() && !shareDir.mkdirs()) return null
 
-        copyAssetDir(context, "qemu/bin", binDir)
         copyAssetDir(context, "qemu/lib", libDir)
         copyAssetDir(context, "qemu/share", shareDir)
 
-        val qemuPath = File(binDir, "qemu-system-aarch64")
+        val qemuPath = File(context.applicationInfo.nativeLibraryDir, "libqemu-system-aarch64.so")
         if (!qemuPath.exists()) return null
-        qemuPath.setExecutable(true)
 
         versionFile.writeText(BUNDLE_VERSION.toString())
         return QemuBundle(qemuPath.absolutePath, libDir.absolutePath, shareDir.absolutePath)
