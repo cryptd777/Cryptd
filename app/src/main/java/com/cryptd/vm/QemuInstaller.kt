@@ -6,7 +6,7 @@ import java.io.FileOutputStream
 
 object QemuInstaller {
     data class QemuBundle(val qemuPath: String, val libDir: String, val shareDir: String)
-    private const val BUNDLE_VERSION = 2
+    private const val BUNDLE_VERSION = 3
 
     fun ensureQemuBundle(context: Context): QemuBundle? {
         val baseDir = File(context.filesDir, "qemu")
