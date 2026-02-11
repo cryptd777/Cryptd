@@ -51,10 +51,12 @@ Java_com_cryptd_vm_NativeBridge_startVm(
         JNIEnv* env,
         jclass clazz,
         jstring isoPath,
+        jint isoFd,
         jstring qemuPath,
         jstring libDir,
         jstring shareDir,
         jstring diskPath,
+        jint diskFd,
         jstring logPath,
         jint ramMb,
         jint cpuCores,
@@ -85,6 +87,17 @@ Java_com_cryptd_vm_NativeBridge_startVm(
         return -2;
     }
 
+    auto clear_cloexec = [](int fd) {
+        if (fd < 0) return;
+        int flags = fcntl(fd, F_GETFD);
+        if (flags >= 0) {
+            fcntl(fd, F_SETFD, flags & ~FD_CLOEXEC);
+        }
+    };
+
+    clear_cloexec(isoFd);
+    clear_cloexec(diskFd);
+
     std::string vncDisplay = "127.0.0.1:" + std::to_string(vncPort - 5900);
     std::string ramArg = std::to_string(ramMb);
     std::string cpuArg = std::to_string(cpuCores);
@@ -105,8 +118,14 @@ Java_com_cryptd_vm_NativeBridge_startVm(
     args.push_back("-device");
     args.push_back("virtio-gpu-pci");
 
-    std::string isoStr(iso);
+    std::string isoStr(iso ? iso : "");
     std::string diskStr(diskPathStr ? diskPathStr : "");
+    if (isoFd >= 0) {
+        isoStr = "/proc/self/fd/" + std::to_string(isoFd);
+    }
+    if (diskFd >= 0) {
+        diskStr = "/proc/self/fd/" + std::to_string(diskFd);
+    }
     args.push_back("-bios");
     args.push_back(std::string(shareDirStr) + "/qemu/edk2-aarch64-code.fd");
 
@@ -184,6 +203,12 @@ Java_com_cryptd_vm_NativeBridge_startVm(
     } else if (pid > 0) {
         g_vm_pid = pid;
         LOGI("VM started pid=%d", g_vm_pid);
+        if (isoFd >= 0) {
+            close(isoFd);
+        }
+        if (diskFd >= 0) {
+            close(diskFd);
+        }
         if (logPathStr && strlen(logPathStr) > 0) {
             pthread_t tid;
             WaitArgs* wa = new WaitArgs{pid, std::string(logPathStr)};
@@ -204,6 +229,12 @@ Java_com_cryptd_vm_NativeBridge_startVm(
     env->ReleaseStringUTFChars(gfx, gfxStr);
 
     if (pid <= 0) {
+        if (isoFd >= 0) {
+            close(isoFd);
+        }
+        if (diskFd >= 0) {
+            close(diskFd);
+        }
         return -3;
     }
     return 0;

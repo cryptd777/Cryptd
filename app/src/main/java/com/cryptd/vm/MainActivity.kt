@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.documentfile.provider.DocumentFile
+import android.content.Intent
 
 class MainActivity : ComponentActivity() {
 
@@ -34,11 +35,16 @@ class MainActivity : ComponentActivity() {
     ) { uri: Uri? ->
         if (uri != null) {
             // Persist permission for later use
-            contentResolver.takePersistableUriPermission(
-                uri,
-                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
+            try {
+                contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+            } catch (e: SecurityException) {
+                // Some providers only allow read permission; continue with read.
+            }
             selectedUri = uri
+            VmFiles.saveLastIsoUri(this, uri)
             pickIsoButton.text = DocumentFile.fromSingleUri(this, uri)?.name ?: "Selected"
         }
     }
@@ -66,6 +72,10 @@ class MainActivity : ComponentActivity() {
         vncPortInput.setText("5901")
         diskSizeInput.setText("8")
         lastDiskPath = VmFiles.loadLastDiskPath(this)
+        selectedUri = VmFiles.loadLastIsoUri(this)
+        if (selectedUri != null) {
+            pickIsoButton.text = DocumentFile.fromSingleUri(this, selectedUri!!)?.name ?: "Selected"
+        }
 
         pickIsoButton.setOnClickListener {
             pickFileLauncher.launch(arrayOf("application/x-iso9660-image", "application/octet-stream"))
@@ -101,7 +111,10 @@ class MainActivity : ComponentActivity() {
         }
 
         startButton.setOnClickListener {
-            val uri = selectedUri ?: return@setOnClickListener
+            val uri = selectedUri ?: run {
+                Toast.makeText(this, "Select an ISO or disk image", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             val ramMb = ramInput.text.toString().toIntOrNull() ?: 1024
             val cpuCores = cpuInput.text.toString().toIntOrNull() ?: 2
             var gfx = gfxSpinner.selectedItem.toString()
@@ -114,12 +127,10 @@ class MainActivity : ComponentActivity() {
             }
 
             val name = DocumentFile.fromSingleUri(this, uri)?.name?.lowercase() ?: ""
+            val isDiskImage = name.endsWith(".qcow2") || name.endsWith(".img") || name.endsWith(".raw")
             if (name.contains("x86") || name.contains("amd64") || name.contains("i386")) {
                 Toast.makeText(this, "This app runs arm64 guests. Please pick an arm64/aarch64 ISO.", Toast.LENGTH_LONG).show()
                 return@setOnClickListener
-            }
-            if (name.endsWith(".qcow2") || name.endsWith(".img") || name.endsWith(".raw")) {
-                // Accept disk images without ISO check
             }
 
             if (gfx != "virtio") {
@@ -129,14 +140,16 @@ class MainActivity : ComponentActivity() {
 
             setUiEnabled(false)
             Thread {
-                val isoPath = VmFiles.copyToPrivateStorage(this, uri)
-                if (isoPath == null) {
+                val fdMode = if (isDiskImage) "rw" else "r"
+                val fd = VmFiles.openDocumentFd(this, uri, fdMode)
+                if (fd == null) {
                     runOnUiThread {
-                        Toast.makeText(this, "Failed to read selected file", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, "Failed to open selected file. Please reselect.", Toast.LENGTH_SHORT).show()
                         setUiEnabled(true)
                     }
                     return@Thread
                 }
+                VmFiles.saveLastIsoUri(this, uri)
 
                 val bundle = QemuInstaller.ensureQemuBundle(this)
                 if (bundle == null) {
@@ -156,15 +169,30 @@ class MainActivity : ComponentActivity() {
                         lastDiskPath = null
                     }
                 }
-                VmLogStore.append(this, "ISO: $isoPath\n")
+
+                var isoPath = ""
+                var isoFd = -1
+                var diskFd = -1
+                if (isDiskImage) {
+                    diskPath = "/proc/self/fd/$fd"
+                    diskFd = fd
+                } else {
+                    isoPath = "/proc/self/fd/$fd"
+                    isoFd = fd
+                }
+
+                VmLogStore.append(this, "ISO URI: $uri\n")
+                VmLogStore.append(this, "ISO Path: $isoPath\n")
                 VmLogStore.append(this, "Disk: $diskPath\n")
                 VmLogStore.append(this, "RAM: ${ramMb}MB CPU: $cpuCores GFX: $gfx VNC: $vncPort KVM: $useKvm\n")
                 val rc = NativeBridge.startVm(
                     isoPath,
+                    isoFd,
                     bundle.qemuPath,
                     bundle.libDir,
                     bundle.shareDir,
                     diskPath,
+                    diskFd,
                     logPath,
                     ramMb,
                     cpuCores,

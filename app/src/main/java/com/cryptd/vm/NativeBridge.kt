@@ -7,10 +7,12 @@ object NativeBridge {
 
     external fun startVm(
         isoPath: String,
+        isoFd: Int,
         qemuPath: String,
         libDir: String,
         shareDir: String,
         diskPath: String,
+        diskFd: Int,
         logPath: String,
         ramMb: Int,
         cpuCores: Int,
