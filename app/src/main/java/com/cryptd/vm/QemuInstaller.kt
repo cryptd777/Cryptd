@@ -9,7 +9,7 @@ object QemuInstaller {
     private const val BUNDLE_VERSION = 1
 
     fun ensureQemuBundle(context: Context): QemuBundle? {
-        val baseDir = File(context.filesDir, "qemu")
+        val baseDir = File(context.codeCacheDir, "qemu")
         val versionFile = File(baseDir, ".version")
         if (versionFile.exists()) {
             val current = versionFile.readText().trim().toIntOrNull()
