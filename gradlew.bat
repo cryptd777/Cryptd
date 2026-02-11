@@ -75,6 +75,11 @@ if exist "%APP_HOME%\\gradle\\wrapper\\gradle-wrapper-shared-8.7.jar" (
 if exist "%APP_HOME%\\gradle\\wrapper\\gradle-cli-8.7.jar" (
   set CLASSPATH=%CLASSPATH%;%APP_HOME%\\gradle\\wrapper\\gradle-cli-8.7.jar
 )
+for %%F in (gradle-base-services-8.7.jar gradle-base-services-groovy-8.7.jar gradle-file-collections-8.7.jar gradle-files-8.7.jar gradle-core-api-8.7.jar) do (
+  if exist "%APP_HOME%\\gradle\\wrapper\\%%F" (
+    set CLASSPATH=%CLASSPATH%;%APP_HOME%\\gradle\\wrapper\\%%F
+  )
+)
 
 
 @rem Execute Gradle

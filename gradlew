@@ -119,6 +119,17 @@ fi
 if [ -f "$APP_HOME/gradle/wrapper/gradle-cli-8.7.jar" ]; then
     CLASSPATH=$CLASSPATH:$APP_HOME/gradle/wrapper/gradle-cli-8.7.jar
 fi
+for jar in \
+    gradle-base-services-8.7.jar \
+    gradle-base-services-groovy-8.7.jar \
+    gradle-file-collections-8.7.jar \
+    gradle-files-8.7.jar \
+    gradle-core-api-8.7.jar
+do
+    if [ -f "$APP_HOME/gradle/wrapper/$jar" ]; then
+        CLASSPATH=$CLASSPATH:$APP_HOME/gradle/wrapper/$jar
+    fi
+done
 
 
 # Determine the Java command to use to start the JVM.
