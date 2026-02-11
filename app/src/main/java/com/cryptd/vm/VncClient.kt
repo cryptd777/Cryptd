@@ -89,7 +89,7 @@ class VncClient(
         }
     }
 
-    fun stop() = stopClient()
+    fun shutdown() = stopClient()
 
     fun sendPointerEvent(x: Int, y: Int, buttons: Int) {
         lastButtons = buttons

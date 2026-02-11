@@ -51,7 +51,7 @@ class VncView(context: Context) : View(context) {
     }
 
     fun disconnect() {
-        client?.stop()
+        client?.shutdown()
         client = null
         inputEnabled = false
     }
