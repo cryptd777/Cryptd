@@ -72,6 +72,9 @@ set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
 if exist "%APP_HOME%\\gradle\\wrapper\\gradle-wrapper-shared-8.7.jar" (
   set CLASSPATH=%CLASSPATH%;%APP_HOME%\\gradle\\wrapper\\gradle-wrapper-shared-8.7.jar
 )
+if exist "%APP_HOME%\\gradle\\wrapper\\gradle-cli-8.7.jar" (
+  set CLASSPATH=%CLASSPATH%;%APP_HOME%\\gradle\\wrapper\\gradle-cli-8.7.jar
+)
 
 
 @rem Execute Gradle
