@@ -6,6 +6,8 @@ import android.widget.TextView
 import androidx.activity.ComponentActivity
 
 class LogActivity : ComponentActivity() {
+    private var textView: TextView? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -13,14 +15,13 @@ class LogActivity : ComponentActivity() {
         val text = TextView(this)
         text.textSize = 12f
         text.text = VmLogStore.readAll(this)
+        textView = text
         scroll.addView(text)
         setContentView(scroll)
     }
 
     override fun onResume() {
         super.onResume()
-        val scroll = findViewById<ScrollView>(android.R.id.content)
-        val text = (scroll.getChildAt(0) as? TextView) ?: return
-        text.text = VmLogStore.readAll(this)
+        textView?.text = VmLogStore.readAll(this)
     }
 }
