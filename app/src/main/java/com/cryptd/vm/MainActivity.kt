@@ -219,12 +219,13 @@ class MainActivity : ComponentActivity() {
                         VmLogStore.append(this, "ISO copied to app storage: $copiedFallbackPath\n")
                     }
                 } else {
+                    val fdVal = fd ?: -1
                     if (isDiskImage) {
-                        diskPath = "/proc/self/fd/$fd"
-                        diskFd = fd
+                        diskPath = "/proc/self/fd/$fdVal"
+                        diskFd = fdVal
                     } else {
-                        isoPath = "/proc/self/fd/$fd"
-                        isoFd = fd
+                        isoPath = "/proc/self/fd/$fdVal"
+                        isoFd = fdVal
                     }
                 }
 

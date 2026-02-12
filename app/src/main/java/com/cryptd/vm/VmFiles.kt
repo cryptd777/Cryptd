@@ -3,8 +3,7 @@ package com.cryptd.vm
 import android.content.Context
 import android.net.Uri
 import java.io.File
-import android.system.Os
-import android.system.ErrnoException
+import android.os.ParcelFileDescriptor
 
 object VmFiles {
     fun openDocumentFd(context: Context, uri: Uri, mode: String): Int? {
@@ -71,8 +70,8 @@ object VmFiles {
     fun closeFd(fd: Int) {
         if (fd < 0) return
         try {
-            Os.close(fd)
-        } catch (_: ErrnoException) {
+            ParcelFileDescriptor.adoptFd(fd).close()
+        } catch (_: Exception) {
         }
     }
 }
